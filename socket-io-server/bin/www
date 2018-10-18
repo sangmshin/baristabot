@@ -1,0 +1,145 @@
+#!/usr/bin/env node
+
+/**
+ * Module dependencies.
+ */
+
+var app = require('../app');
+var debug = require('debug')('socket-io-server:server');
+var http = require('http');
+var socket = require('socket.io');
+
+/**
+ * Get port from environment and store in Express.
+ */
+
+var port = normalizePort(process.env.PORT || '8080');
+app.set('port', port);
+
+/**
+ * Create HTTP server.
+ */
+
+var server = http.createServer(app);
+
+/**
+ * Listen on provided port, on all network interfaces.
+ */
+
+server.listen(port);
+server.on('error', onError);
+server.on('listening', onListening);
+
+
+/**
+ * Socket.io setting
+ */
+io = socket(server);
+
+var chat_users = [];
+// var autoMode = true;
+
+io.on('connection', socket => {
+    console.log('Socket.io.id: ', socket.id);
+
+    socket.on('SEND_MESSAGE', data => {
+
+        chat_users.includes(data.author)
+        ? console.log('already existed')
+        : chat_users.push(data.author)
+
+        
+
+        // data.autoMode === true
+        // ? console.log('automatic-ordering system turned on.')
+        // : autoMode = false
+        
+        
+        // NEW USER RESET
+        // !chat_users.includes(data.author)
+        // ? autoMode = true
+        // : console.log('existing user:', data.author);
+        
+        io.emit('RECEIVE_MESSAGE', data);
+        io.emit('CHAT_USERS', chat_users);
+        // io.emit('AUTO_MODE', autoMode);
+
+        console.log(chat_users);
+        // console.log('autoMode is: ', autoMode);
+        
+    })
+
+    socket.on('AUTO_MODE', isAuto => {
+      console.log('isAuto from server: ', isAuto);
+      io.emit('AUTO_MODE_RECEIVER', isAuto);
+    })
+
+    socket.on('READY', ready => {
+      console.log('[SERVER] ready to pickup: ', ready);
+      io.emit('READY_RECEIVER', ready);
+    })
+
+});
+
+
+
+
+/**
+ * Normalize a port into a number, string, or false.
+ */
+
+function normalizePort(val) {
+  var port = parseInt(val, 10);
+
+  if (isNaN(port)) {
+    // named pipe
+    return val;
+  }
+
+  if (port >= 0) {
+    // port number
+    return port;
+  }
+
+  return false;
+}
+
+/**
+ * Event listener for HTTP server "error" event.
+ */
+
+function onError(error) {
+  if (error.syscall !== 'listen') {
+    throw error;
+  }
+
+  var bind = typeof port === 'string'
+    ? 'Pipe ' + port
+    : 'Port ' + port;
+
+  // handle specific listen errors with friendly messages
+  switch (error.code) {
+    case 'EACCES':
+      console.error(bind + ' requires elevated privileges');
+      process.exit(1);
+      break;
+    case 'EADDRINUSE':
+      console.error(bind + ' is already in use');
+      process.exit(1);
+      break;
+    default:
+      throw error;
+  }
+}
+
+/**
+ * Event listener for HTTP server "listening" event.
+ */
+
+function onListening() {
+  var addr = server.address();
+  var bind = typeof addr === 'string'
+    ? 'pipe ' + addr
+    : 'port ' + addr.port;
+  debug('Listening on ' + bind);
+}
